@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "HS.h"
 
 int main() {
@@ -10,16 +11,22 @@ int main() {
     int min = -10;
     int max = 10;
 
-    HS hs(min, max, 30, 2);
+    HS hs(min, max, 20, 2);
     hs.gen_rand_harmonies();
 
-//    std::cout << "Harmony memory: " << std::endl;
-//    hs.print();
+    std::ofstream out;
+    out.open("/home/tsulayakris/CLionProjects/HarmonySearch/results");
 
-    while (std::abs(cur_f_value - f_min) > pow(10, -7)) {
-        std::cout << cur_iter << std::endl;
+    while (std::abs(cur_f_value - f_min) > pow(10, -3)) {
         cur_f_value = hs.find_best();
         ++cur_iter;
     }
+
+    out << "Iteration: " << cur_iter << std::endl;
+    out << "Solution: " << cur_f_value << std::endl;
+    hs.print_val(out);
+    out << std::endl;
+
+    out.close();
     return 0;
 }

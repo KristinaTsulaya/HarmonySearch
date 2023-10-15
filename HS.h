@@ -72,8 +72,8 @@ public:
     }
 
     double fitness(double x, double y) {
-//        return log(1 + pow(1 - x, 2) + 100 * pow(y - pow(x, 2), 2)); // fx min at (1, 1)
-        return pow(x, 2) + pow(y, 2);  // fx min at (0, 0)
+        return log(1 + pow(1 - x, 2) + 100 * pow(y - pow(x, 2), 2)); // fx min at (1, 1)
+//        return pow(x, 2) + pow(y, 2);  // fx min at (0, 0)
 //        return exp(pow(x,2) + pow(y, 2));
     }
 
@@ -112,14 +112,7 @@ public:
             }
         }
 
-        std::cout << "Solution: " << fitness_tmp << std::endl;
-        std::cout << "Generated harmony (x): " << tmp_harmony[0] << " " << tmp_harmony[1] << std::endl;
-//        std::cout << "Harmony memory: " << std::endl;
-//        print();
-
         fitness_worst = 0, fitness_best = DBL_MAX;
-        gen_new_harmony();
-
         return fitness_tmp;
     }
 
@@ -130,5 +123,9 @@ public:
             }
             std::cout << std::endl;
         }
+    }
+
+    void print_val(std::ofstream& out){
+        out << "Generated harmony (x): " << tmp_harmony[0] << " " << tmp_harmony[1] << std::endl;
     }
 };
