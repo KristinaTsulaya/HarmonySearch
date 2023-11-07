@@ -20,11 +20,13 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     while (cur_iter < max_iter) {
         cur_f_value = hs.find_best(cur_iter, max_iter);
-        if (cur_iter % 10 == 0){
+        if (cur_iter % 10 == 0) {
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
             out << "Time: " << duration.count() / 1e6 << std::endl;
             out << "Solution: " << cur_f_value << std::endl;
+
             hs.print_val(out);
             out << std::endl;
         }
@@ -33,8 +35,10 @@ int main() {
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
     out << "Time: " << duration.count() / 1e6 << std::endl;
     out << "Solution: " << cur_f_value << std::endl;
+
     hs.print_val(out);
     out << std::endl;
 

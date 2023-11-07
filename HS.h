@@ -1,6 +1,6 @@
 #include <vector>
-#include <random>
 #include <cfloat>
+#include "_random.h"
 
 class HS {
 private:
@@ -19,42 +19,15 @@ private:
     double fitness_worst;
     double fitness_best;
     std::vector<double> val;
+
 public:
     struct adjusters {
     public:
-        double r_pa = 0.5; // par
-        double r_accept = 0.95; // hmar
+        double r_pa = 0.5;
+        double r_accept = 0.95;
 
-        double e = gen_double_uniform_val(-1, 1); // uniform
-        double bandwidth = 0.1; // bw
-
-    public:
-        double gen_double_uniform_val(double a, double b) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::normal_distribution<> dis(a, b);
-            return dis(gen);
-        }
-        double gen_double_normal_val(double a, double b) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::normal_distribution<> dis(a, b);
-            return dis(gen);
-        }
-
-        double bernuli(double p) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::bernoulli_distribution dis(p);
-            return dis(gen);
-        }
-
-        int gen_int_val(int a, int b) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(a, b);
-            return dis(gen);
-        }
+        double e = _random::distributions::uniform_real(-1, 1); // uniform
+        double bandwidth = 0.1;
     };
 
     adjusters adjusters;
@@ -87,7 +60,7 @@ public:
 
     void gen_rand_harmonies() {
         for (size_t i = 0; i < harmonies.size(); ++i) {
-            harmonies[i] = min + adjusters.gen_double_uniform_val(0, 1) * (max - min);
+            harmonies[i] = min + _random::distributions::uniform_real(0, 1) * (max - min);
         }
     }
 
@@ -99,19 +72,20 @@ public:
 
     double find_best(size_t cur_iter, size_t max_iter) {
         for (size_t j = 0; j < rows; ++j) {
-            int i = adjusters.gen_int_val(0, cols - 1);
-            double rand_value = adjusters.gen_double_uniform_val(0, 1);
+            int i = _random::distributions::uniform_int(0, cols - 1);
+            double rand_value = _random::distributions::uniform_real(0, 1);
 
             if (rand_value < adjusters.r_accept) {
                 tmp_harmony[j] = harmonies[i * rows + j];
-                rand_value = adjusters.gen_double_uniform_val(0, 1);
+                rand_value = _random::distributions::uniform_real(0, 1);
                 if (rand_value < adjusters.r_pa) {
                     adjusters.bandwidth = 0.5 + ((0.6 - 0.5) / double(max_iter - 1)) * double(cur_iter - 1);
-                    tmp_harmony[j] = tmp_harmony[j] + (2 * adjusters.bernuli(0.5) - 1) * adjusters.bandwidth * adjusters.gen_double_normal_val(0,1);
+                    tmp_harmony[j] = tmp_harmony[j] + (2 * _random::distributions::bernoulli(0.5) - 1) * adjusters.bandwidth *
+                                                              _random::distributions::normal_double(0, 1);
                 }
             }
             else {
-                tmp_harmony[j] = min + (max - min) * adjusters.gen_double_uniform_val(0, 1);
+                tmp_harmony[j] = min + (max - min) * _random::distributions::uniform_real(0, 1);
             }
         }
 
