@@ -7,8 +7,8 @@ private:
     size_t cols, rows; // --- |||
     size_t size;
 
-    int max;
-    int min;
+    double max;
+    double min;
 
     std::vector<double> harmonies;
     std::vector<double> tmp_harmony;
@@ -16,23 +16,36 @@ private:
     size_t worst_position = 0;
     size_t best_position = 0;
 
-    double fitness_worst = 0, fitness_best = DBL_MAX;
-
+    double fitness_worst;
+    double fitness_best;
+    std::vector<double> val;
 public:
     struct adjusters {
     public:
         double r_pa = 0.5; // par
         double r_accept = 0.95; // hmar
-        double pitch_lim = 0;
 
-        double e = gen_double_val(-1, 1); // uniform
-        double bandwidth = gen_double_val(-1, 1); // uniform // bw
+        double e = gen_double_uniform_val(-1, 1); // uniform
+        double bandwidth = 0.1; // bw
 
     public:
-        double gen_double_val(double a, double b) {
+        double gen_double_uniform_val(double a, double b) {
             std::random_device rd;
             std::mt19937 gen(rd());
-            std::uniform_real_distribution<> dis(a, b);
+            std::normal_distribution<> dis(a, b);
+            return dis(gen);
+        }
+        double gen_double_normal_val(double a, double b) {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::normal_distribution<> dis(a, b);
+            return dis(gen);
+        }
+
+        double bernuli(double p) {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::bernoulli_distribution dis(p);
             return dis(gen);
         }
 
@@ -47,7 +60,7 @@ public:
     adjusters adjusters;
 
 public:
-    HS(int _min, int _max, size_t _cols, size_t _rows) {
+    HS(double _min, double _max, size_t _cols, size_t _rows) {
         min = _min;
         max = _max;
 
@@ -57,53 +70,57 @@ public:
 
         harmonies.resize(size);
         tmp_harmony.resize(rows);
+        val.resize(cols);
+
+        gen_rand_harmonies();
+        for (size_t i = 0; i < cols; ++i) {
+            double fitness_tmp_val = fitness(harmonies[i * rows + 0], harmonies[i * rows + 1]);
+            val[i] = fitness_tmp_val;
+        }
+
+        fitness_best = *std::min_element(val.begin(), val.end());
+        fitness_worst = *std::max_element(val.begin(), val.end());
+
+        best_position = std::distance(std::begin(val), std::min_element(val.begin(), val.end()));
+        worst_position = std::distance(std::begin(val), std::max_element(val.begin(), val.end()));
     }
 
     void gen_rand_harmonies() {
         for (size_t i = 0; i < harmonies.size(); ++i) {
-            harmonies[i] = adjusters.gen_double_val(min, max);
-        }
-    }
-
-    void gen_new_harmony() {
-        for (size_t i = 0; i < tmp_harmony.size(); ++i) {
-            tmp_harmony[i] = adjusters.gen_double_val(0, 0);
+            harmonies[i] = min + adjusters.gen_double_uniform_val(0, 1) * (max - min);
         }
     }
 
     double fitness(double x, double y) {
-        return log(1 + pow(1 - x, 2) + 100 * pow(y - pow(x, 2), 2)); // fx min at (1, 1)
-//        return pow(x, 2) + pow(y, 2);  // fx min at (0, 0)
-//        return exp(pow(x,2) + pow(y, 2));
+//        return log(1 + pow(1 - x, 2) + 100 * pow(y - pow(x, 2), 2)); // fx min at (1, 1)
+//        return pow(1 - x, 2) + 100 * pow(y - pow(x, 2), 2);
+        return -sin(x) * pow(sin(pow(x, 2) / 3.14 ), 20) - sin(y) * pow(sin(2 * pow(y, 2) / 3.14 ), 20);
     }
 
-    double find_best() {
+    double find_best(size_t cur_iter, size_t max_iter) {
         for (size_t j = 0; j < rows; ++j) {
-            int i = adjusters.gen_int_val(0, cols);
-            double rand_value = adjusters.gen_double_val(0, 1);
+            int i = adjusters.gen_int_val(0, cols - 1);
+            double rand_value = adjusters.gen_double_uniform_val(0, 1);
 
             if (rand_value < adjusters.r_accept) {
                 tmp_harmony[j] = harmonies[i * rows + j];
-                rand_value = adjusters.gen_double_val(0, 1);
+                rand_value = adjusters.gen_double_uniform_val(0, 1);
                 if (rand_value < adjusters.r_pa) {
-                    tmp_harmony[j] = tmp_harmony[j] + adjusters.e * adjusters.bandwidth;
+                    adjusters.bandwidth = 0.5 + ((0.6 - 0.5) / double(max_iter - 1)) * double(cur_iter - 1);
+                    tmp_harmony[j] = tmp_harmony[j] + (2 * adjusters.bernuli(0.5) - 1) * adjusters.bandwidth * adjusters.gen_double_normal_val(0,1);
                 }
-            } else {
-                tmp_harmony[j] = adjusters.gen_double_val(min, max);
+            }
+            else {
+                tmp_harmony[j] = min + (max - min) * adjusters.gen_double_uniform_val(0, 1);
             }
         }
 
         for (size_t i = 0; i < cols; ++i) {
             double fitness_tmp_val = fitness(harmonies[i * rows + 0], harmonies[i * rows + 1]);
-            if (fitness_tmp_val < fitness_best) {
-                fitness_best = fitness_tmp_val;
-                best_position = i;
-            }
-            if (fitness_tmp_val > fitness_worst) {
-                fitness_worst = fitness_tmp_val;
-                worst_position = i;
-            }
+            val[i] = fitness_tmp_val;
         }
+        fitness_worst = *std::max_element(val.begin(), val.end());
+        worst_position = std::distance(std::begin(val), std::max_element(val.begin(), val.end()));
 
         double fitness_tmp = fitness(tmp_harmony[0], tmp_harmony[1]);
         if (fitness_tmp < fitness_worst) {
@@ -112,20 +129,18 @@ public:
             }
         }
 
-        fitness_worst = 0, fitness_best = DBL_MAX;
-        return fitness_tmp;
-    }
-
-    void print() const{
         for (size_t i = 0; i < cols; ++i) {
-            for (size_t j = 0; j < rows; ++j) {
-                std::cout << harmonies[i * rows + j] << " ";
-            }
-            std::cout << std::endl;
+            double fitness_tmp_val = fitness(harmonies[i * rows + 0], harmonies[i * rows + 1]);
+            val[i] = fitness_tmp_val;
         }
+
+        fitness_best = *std::min_element(val.begin(), val.end());
+        best_position = std::distance(std::begin(val), std::min_element(val.begin(), val.end()));
+
+        return fitness_best;
     }
 
     void print_val(std::ofstream& out){
-        out << "Generated harmony (x): " << tmp_harmony[0] << " " << tmp_harmony[1] << std::endl;
+        out << "Solution (x, y): " << harmonies[best_position * rows + 0] << " " << harmonies[best_position * rows + 1] << std::endl;
     }
 };
